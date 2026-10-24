@@ -1,6 +1,6 @@
 ---
 name: plan-issues
-description: Act as the planner agent for a repo — research via cheap codex dispatches, shape work into a labeled issue board (p0/p1/tracking/bug/spike), and file well-calibrated GitHub issues that /issue-loop or any fresh agent can execute. Use when the user invokes /plan-issues <repo>, or says "let's file issues", "plan the issues", "seed the backlog", "turn this into issues".
+description: Act as the planner agent for a repo — research via Sonnet subagent dispatches, shape work into a labeled issue board (p0/p1/tracking/bug/spike), and file well-calibrated GitHub issues that /issue-loop or any fresh agent can execute. Takes an optional version key that scopes the batch under one label so a fenced loop run picks up only that work. Use when the user invokes /plan-issues <repo> [version-key], or says "let's file issues", "plan the issues", "seed the backlog", "turn this into issues".
 user_invocable: true
 ---
 
@@ -41,6 +41,13 @@ The label scheme (create any missing labels on first use):
 | `spike` | investigation — the loop works these like any queued issue, but as a read-only research dispatch: no branch, no PR; the deliverable is a findings comment on the issue, and the loop finishes by tagging `needs-human-review` for the human to act on and close |
 | `needs-human-review` | blocked on a human — the executor hit something it genuinely cannot do (credentials, external approval) or has investigation/spike findings awaiting a human call; bright orange (`FF6600`), set with an explaining comment on the issue (plus a linked draft PR tagged the same, iff partial code exists); parked like `skip-me` until a human clears it |
 | *(none)* | deferred only — an unlabeled issue means "the loop must not pick this up", never "priority TBD" (that's `p2`) |
+| `<version-key>` | the batch's scope, e.g. `v2` or `web-redesign` — filed on every issue in the pass when the planning run has a version key, on top of the priority label |
+
+### Version scope
+
+`/plan-issues <repo> [version-key]` takes an optional **version key**: a label name that scopes the batch. Every issue filed in the pass carries it alongside its priority label; create the label on first use.
+
+The key is load-bearing, not decorative. `/issue-loop <repo> <version-key>` fences a run to exactly that label and treats the rest of the board as invisible, so on a board the user doesn't own outright — a shared team repo, or one whose real queue lives in Asana or Linear — the version label is what makes the work loopable at all without touching anyone else's backlog. Pick a name that still reads as a scope to the repo's other contributors, and name the fenced invocation in the report so the executor is run with it.
 
 - Hierarchy is flat: tracking issues + sub-issues, nothing deeper. Sub-issues inherit the parent's priority label.
 - Use **real GitHub sub-issue links**, not markdown checklists: create the child, then `gh api -X POST repos/<owner>/<repo>/issues/<parent>/sub_issues -F sub_issue_id=<child-database-id>` (the database id from `gh api repos/<owner>/<repo>/issues/<n> --jq .id`).
@@ -52,7 +59,7 @@ The label scheme (create any missing labels on first use):
 Issues are only as good as their grounding. Before writing bodies:
 
 - Read the repo's own orientation docs first (`AGENTS.md`, `docs/`, existing ADRs).
-- Dispatch research where it's cheaper than reading inline: `codex exec -s read-only` with a self-contained prompt (gpt-5.6-terra is near-free) for repo audits, current-state mapping, prior-art checks. Batch independent questions into parallel dispatches.
+- Dispatch research where it's cheaper than reading inline: a Sonnet `Explore`/subagent with a self-contained prompt for repo audits, current-state mapping, prior-art checks (Opus when the question needs judgment). Batch independent questions into parallel dispatches.
 - Verify every claim that lands in a body — a wrong path or misnamed seam sends the implementer down a hole. If you can't verify it, don't assert it; state it as an open question inside the issue.
 - Surface genuinely unresolved technical questions *inside* the issue as part of the work ("the implementer must resolve X; don't hand-wave it") rather than silently guessing.
 
@@ -68,8 +75,8 @@ When an issue is grounded in screenshots or mocks (a UI complaint, design parity
 
 ## Workflow
 
-1. **Attach.** Resolve the target repo (argument, else current repo). If you keep a session log or a project workspace, attach this run to it now.
-2. **Scope with the user.** They usually word-vomit the intent. Ask clarifying questions once and early — granularity, priorities, what's deferred — when there's a genuine fork. Don't interview past the point of diminishing returns. **Always establish which version the filed issues belong to** — the executor's top sort key is the version label, so issues filed without one are invisible or mis-ordered to the loop. If the user didn't name one, ask before filing.
+1. **Attach.** Resolve the target repo and the version key from the arguments (repo defaults to the current one; the version key has no default — see step 2). If you keep a session log or a project workspace, attach this run to it now.
+2. **Scope with the user.** They usually word-vomit the intent. Ask clarifying questions once and early — granularity, priorities, what's deferred — via `AskUserQuestion` when there's a genuine fork. Don't interview past the point of diminishing returns. **Always establish which version the filed issues belong to** — the executor's top sort key is the version label and a fenced run sees nothing else, so issues filed without one are invisible or mis-ordered to the loop. The `[version-key]` argument settles it; if the user didn't name one, ask before filing.
 3. **Research** (above) until the issue set is grounded.
 4. **Propose the set before filing:** titles + labels + tracker/sub structure + one-liners, in filed order. This is a cheap confirm on shape — full bodies don't need pre-approval. Skip the confirm only if the user already dictated the exact set.
 5. **File** via `gh`: labels first, then issues in execution order, linking sub-issues as you go. Verify the sub-issue links landed.

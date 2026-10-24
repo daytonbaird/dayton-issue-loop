@@ -13,9 +13,9 @@ Use one agent to plan, and have up to ~2 agents executing the issues.
 
 | Dependency | What it does |
 | --- | --- |
-| [`fable-codex-coordinator`](https://github.com/daytonbaird/fable-codex-coordinator) | The three Codex skills every ticket gets handed to — one writes the code, one tries to tear it apart, one opens the app and looks at it. Install these first. |
+| [`dayton-agent-coordination`](https://github.com/daytonbaird/dayton-agent-coordination) | The `codex-review` skill every pull request goes through before it merges, plus the rules for which model does what. Install it first. |
 
-Without them there's nothing to hand the work to, and `/issue-loop` ends up writing the code itself, which is the one thing it's built not to do.
+The code itself gets written by Claude subagents: Sonnet for the straightforward tickets, Opus for UI and anything that needs judgment. Codex reviews it. A different model reading the code cold catches things the one that wrote it won't.
 
 ## Tips for success
 
@@ -66,6 +66,10 @@ Then, in a new session:
 ```text
 /plan-issues <your repo>     # fill the board
 /issue-loop <your repo>      # start emptying it
+
+# On a repo you share with other people, keep the loop to one label:
+/plan-issues <your repo> v2
+/issue-loop <your repo> v2
 ```
 
 > **Read them, don't just install them.** These are text files, and they're full of my opinions — how it sorts the list, two at a time, what the labels are called. Some of that won't suit you. Change it. The commands are here if you'd rather start from something that works and edit from there.
@@ -94,6 +98,8 @@ The labels decide what gets worked on and in what order. A ticket with no label 
 **[`issue-loop`](issue-loop/)** does the work. It sorts the list, takes the top two, and for each one: write it, break it, ship it, watch it land.
 
 The order is version, then bugs, then whatever's marked important, then oldest first. That's the whole rule. The point is you can always tell what it's doing without asking.
+
+Give it a label as a second argument and it only looks at tickets with that label. Everything else on the board might as well not exist. That's how you run it on a team repo without it touching anyone else's tickets. `plan-issues` takes the same label and puts it on everything it files.
 
 Two at a time is on purpose. Any more and they start tripping over each other, and you lose the time you saved to cleanup.
 
