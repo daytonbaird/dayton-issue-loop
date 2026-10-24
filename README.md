@@ -38,7 +38,7 @@ Paste this to your agent and it'll do it for you:
 Clone this repo to /tmp/ and verbatim cp -R all skills to the folder where Claude skills
 are managed globally on this machine.
 
-    git clone https://github.com/daytonbaird/fable-issue-loop /tmp/fable-issue-loop
+    git clone https://github.com/daytonbaird/dayton-issue-loop /tmp/dayton-issue-loop
 
 1. Every folder in there containing a SKILL.md is one skill.
 2. Work out where Claude skills live globally on this machine, usually ~/.claude/skills/,
@@ -53,8 +53,8 @@ are managed globally on this machine.
 ### Option 2) Run the commands yourself
 
 ```sh
-git clone https://github.com/daytonbaird/fable-issue-loop
-cd fable-issue-loop
+git clone https://github.com/daytonbaird/dayton-issue-loop
+cd dayton-issue-loop
 
 # Copies both skill folders into ~/.claude/skills/. Use your dotfiles path
 # if you symlink them in. Claude Code picks them up next session.
